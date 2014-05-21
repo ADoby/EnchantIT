@@ -2,6 +2,9 @@ defaults:
   max_enchant_level_default: 10
   max_enchant_level_perm: 30
   level_back: 0.5
+  level_cost_per_skill_level: 4
+  mult_per_skill_level: 0.0
+  max_level_cost: 40
 enchants:
   protection: 0
   protect: 0

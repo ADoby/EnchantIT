@@ -6,25 +6,14 @@
 /*   6:    */ import java.util.List;
 /*   7:    */ import java.util.Map;
 /*   8:    */ import java.util.Set;
-/*   9:    */ import java.util.logging.Logger;
-/*  10:    */ import net.milkbowl.vault.permission.Permission;
 /*  11:    */ import org.bukkit.ChatColor;
-/*  12:    */ import org.bukkit.Server;
 /*  13:    */ import org.bukkit.command.Command;
 /*  14:    */ import org.bukkit.command.CommandExecutor;
 /*  15:    */ import org.bukkit.command.CommandSender;
-/*  16:    */ import org.bukkit.command.PluginCommand;
 /*  17:    */ import org.bukkit.configuration.ConfigurationSection;
-/*  18:    */ import org.bukkit.configuration.file.FileConfiguration;
-/*  19:    */ import org.bukkit.configuration.file.FileConfigurationOptions;
 /*  20:    */ import org.bukkit.enchantments.Enchantment;
 /*  21:    */ import org.bukkit.entity.Player;
 /*  22:    */ import org.bukkit.inventory.ItemStack;
-/*  23:    */ import org.bukkit.plugin.PluginDescriptionFile;
-/*  24:    */ import org.bukkit.plugin.PluginLoader;
-/*  25:    */ import org.bukkit.plugin.PluginManager;
-/*  26:    */ import org.bukkit.plugin.RegisteredServiceProvider;
-/*  27:    */ import org.bukkit.plugin.ServicesManager;
 /*  28:    */ import org.bukkit.plugin.java.JavaPlugin;
 /*  29:    */ 
 /*  30:    */ public class EnchantIt
@@ -33,13 +22,16 @@
 /*  33:    */ {
 /*  34:    */   public static EnchantIt plugin;
 /*  35:    */   public static IPermissionHandler permissions;
-/*  36: 30 */   private List<String> enchantStrings = new ArrayList();
+/*  36: 30 */   private List<String> enchantStrings = new ArrayList<String>();
 /*  37: 33 */   private String splitString = " &f: &6";
-/*  38: 36 */   private Map<String, Enchantment> enchants = new HashMap();
-/*  39: 39 */   private Map<Enchantment, Integer> enchantMaxLevels = new HashMap();
+/*  38: 36 */   private Map<String, Enchantment> enchants = new HashMap<String, Enchantment>();
+/*  39: 39 */   private Map<Enchantment, Integer> enchantMaxLevels = new HashMap<Enchantment, Integer>();
 /*  40: 41 */   private int MAX_ENCHANT_LEVEL_DEFAULT = 10;
 /*  41: 42 */   private int MAX_ENCHANT_LEVEL_PERM = 30;
 /*  42: 43 */   private double LEVEL_BACK = 0.5D;
+private int LEVEL_COST_PER_SKILL_LEVEL = 4;
+private double MULT_PER_SKILL_LEVEL = 2.0D;
+private int MAX_LEVEL_COST = 40;
 /*  43:    */   
 /*  44:    */   public void onEnable()
 /*  45:    */   {
@@ -48,20 +40,8 @@
 /*  48: 49 */     getCommand("enchantit").setExecutor(this);
 /*  49:    */     
 /*  50:    */ 
-/*  51: 52 */     RegisteredServiceProvider<Permission> permissionsPlugin = null;
-/*  52: 54 */     if (getServer().getPluginManager().isPluginEnabled("Vault"))
-/*  53:    */     {
-/*  54: 55 */       log("Vault detected. hooked.");
-/*  55:    */       
-/*  56: 57 */       permissionsPlugin = getServer().getServicesManager().getRegistration(Permission.class);
-/*  57:    */       
-/*  58: 59 */       permissions = new PermissionHandlerWrapper((Permission)permissionsPlugin.getProvider());
-/*  59:    */     }
-/*  60:    */     else
-/*  61:    */     {
-/*  62: 61 */       log("Vault not detected for permissions, defaulting to Bukkit Permissions");
-/*  63: 62 */       permissions = new MockPermissionHandler();
-/*  64:    */     }
+/*  51: 52 */     permissions = new MockPermissionHandler();
+
 /*  65: 65 */     getConfig().options().copyDefaults(true);
 /*  66: 66 */     saveConfig();
 /*  67:    */     
@@ -70,6 +50,10 @@
 /*  70: 70 */     this.MAX_ENCHANT_LEVEL_DEFAULT = getConfig().getInt("defaults.max_enchant_level_default");
 /*  71: 71 */     this.MAX_ENCHANT_LEVEL_PERM = getConfig().getInt("defaults.max_enchant_level_perm");
 /*  72: 72 */     this.LEVEL_BACK = getConfig().getDouble("defaults.level_back");
+
+				this.LEVEL_COST_PER_SKILL_LEVEL = getConfig().getInt("defaults.level_cost_per_skill_level");
+				this.MULT_PER_SKILL_LEVEL = getConfig().getDouble("defaults.mult_per_skill_level");
+				this.MAX_LEVEL_COST = getConfig().getInt("defaults.max_level_cost");
 /*  73:    */     
 /*  74: 74 */     ConfigurationSection CS = getConfig().getConfigurationSection("enchants");
 /*  75: 75 */     ConfigurationSection CS2 = getConfig().getConfigurationSection("enchantsmaxlevels");
@@ -79,10 +63,18 @@
 /*  79: 79 */       Iterator<String> ita = enchants.iterator();
 /*  80: 80 */       while (ita.hasNext())
 /*  81:    */       {
-/*  82: 81 */         String enchant = (String)ita.next();
-/*  83: 82 */         String enchantString = enchant + this.splitString + getConfig().getString(new StringBuilder("enchants.").append(enchant).toString());
-/*  84: 83 */         this.enchantStrings.add(enchantString);
-/*  85: 84 */         this.enchants.put(enchant, Enchantment.getById(getConfig().getInt("enchants." + enchant)));
+						try{
+							
+							String enchant = (String)ita.next();
+							String enchantString = enchant + this.splitString + getConfig().getString(new StringBuilder("enchants.").append(enchant).toString());
+							this.enchantStrings.add(enchantString);
+							//this.enchants.put(enchant, Enchantment.values()[getConfig().getInt("enchants." + enchant)]);
+							this.enchants.put(enchant, Enchantment.getById(getConfig().getInt("enchants." + enchant)));
+							
+						}catch(Exception e){
+							
+						}
+/*  82: 81 */         
 /*  86:    */       }
 /*  87: 87 */       Set<String> enchantmaxlevels = CS2.getKeys(false);
 /*  88: 88 */       Iterator<String> ita2 = enchantmaxlevels.iterator();
@@ -94,9 +86,15 @@
 /*  94: 93 */           int enchID = Integer.parseInt(enchantId);
 /*  95: 94 */           if (isInt(getConfig().getString("enchantsmaxlevels." + enchantId)))
 /*  96:    */           {
+	try{
+							//Enchantment ench = Enchantment.values()[enchID];
 /*  97: 95 */             Enchantment ench = Enchantment.getById(enchID);
 /*  98: 96 */             this.enchantMaxLevels.put(ench, Integer.valueOf(getConfig().getInt("enchantsmaxlevels." + enchantId)));
-/*  99:    */           }
+/*  99:    */           
+	}catch(Exception e){
+		
+	}
+	}
 /* 100:    */         }
 /* 101:    */       }
 /* 102:    */     }
@@ -118,6 +116,7 @@
 /* 118:117 */         Player p = (Player)sender;
 /* 119:118 */         Enchantment ench = null;
 /* 120:119 */         if (isInt(args[1])) {
+						//ench = Enchantment.values()[Integer.parseInt(args[1])];
 /* 121:120 */           ench = Enchantment.getById(Integer.parseInt(args[1]));
 /* 122:    */         } else {
 /* 123:122 */           ench = (Enchantment)this.enchants.get(args[1]);
@@ -318,12 +317,12 @@
 /* 318:    */   {
 /* 319:273 */     int levelsneeded = 0;
 /* 320:274 */     for (int i = from + 1; i <= to; i++) {
-/* 321:275 */       if (i > 10) {
-/* 322:276 */         levelsneeded += 35;
-/* 323:    */       } else {
-/* 324:278 */         levelsneeded += 4 * i;
-/* 325:    */       }
+/* 324:278 */        levelsneeded += LEVEL_COST_PER_SKILL_LEVEL + LEVEL_COST_PER_SKILL_LEVEL * (i * MULT_PER_SKILL_LEVEL);
 /* 326:    */     }
+					if(levelsneeded > MAX_LEVEL_COST){
+						levelsneeded = MAX_LEVEL_COST;
+					
+					}
 /* 327:282 */     return levelsneeded;
 /* 328:    */   }
 /* 329:    */   
