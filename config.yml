@@ -21,6 +21,7 @@ enchants:
   respiration: 5-10
   aquaaffinity: 6-10
   wateraffinity: 6-10
+  thorns: 7-10
   sharpness: 16-10
   sharp: 16-10
   smite: 17-10
@@ -41,3 +42,6 @@ enchants:
   flame: 50-10
   infinity: 51-10
   infinite: 51-10
+  luckofthesea: 61-10
+  luck: 61-10
+  lure: 62-10

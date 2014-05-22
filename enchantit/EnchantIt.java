@@ -237,7 +237,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 					
 					//Set Enchantment level to either maxlevel or enchantmentMaxLevel
 					int maxlevel = this.MAX_ENCHANT_LEVEL_DEFAULT;
-					if (permissions.has(p, "enchantit.enchantmore")) {
+					if (permissions.has(p, "enchantIt.enchantmore")) {
 						maxlevel = this.MAX_ENCHANT_LEVEL_PERM;
 					}
 					
@@ -281,7 +281,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 						|| args[0].equalsIgnoreCase("r")) {
 					if ((sender instanceof Player)) {
 						Player p = (Player) sender;
-						if (permissions.has(p, "enchantit.reload")) {
+						if (permissions.has(p, "enchantIt.reload")) {
 							Reload();
 						}
 					} else {
@@ -304,7 +304,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		int currentLevel = getEnchantmentLevel(p.getItemInHand(), ench);
 
 		int maxlevel = this.MAX_ENCHANT_LEVEL_DEFAULT;
-		if (permissions.has(p, "enchantit.enchantmore")) {
+		if (permissions.has(p, "enchantIt.enchantmore")) {
 			maxlevel = this.MAX_ENCHANT_LEVEL_PERM;
 		}
 
@@ -344,6 +344,11 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		}
 
 		if (currentLevel > newLevel) {
+			if(!permissions.has(p, "enchantIt.decrease")){
+				msg(p, "&aYou don't have the permission to decrease any enchantment level.");
+				return;
+			}
+			
 			int levelcost = (int) (calcLevel(newLevel, currentLevel) * this.LEVEL_BACK);
 			int dif = currentLevel - newLevel;
 			
@@ -359,6 +364,11 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 				msg(p, "&aSome error, don't know");
 			}
 		} else if (currentLevel < newLevel) {
+			if(!permissions.has(p, "enchantIt.increase")){
+				msg(p, "&aYou don't have the permission to increase any enchantment level.");
+				return;
+			}
+			
 			int levelcost = calcLevel(currentLevel, newLevel);
 			int dif = newLevel - currentLevel;
 
@@ -452,16 +462,6 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		return false;
 	}
 
-	private boolean addEnchantment(ItemStack item, Enchantment enchantment,
-			int level) {
-		try {
-			item.addUnsafeEnchantment(enchantment, level);
-			return true;
-		} catch (Exception ex) {
-		}
-		return false;
-	}
-
 	private int getEnchantmentLevel(ItemStack item, Enchantment enchantment) {
 		try {
 			int level = item.getEnchantmentLevel(enchantment);
@@ -472,10 +472,6 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		} catch (Exception ex) {
 		}
 		return 0;
-	}
-
-	private boolean removeEnchantment(ItemStack item, Enchantment enchantment) {
-		return setEnchantment(item, enchantment, 0);
 	}
 
 	private boolean setEnchantment(ItemStack item, Enchantment enchantment, int level) {

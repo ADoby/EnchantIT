@@ -17,3 +17,7 @@ permissions:
   enchantIt.levelback:
     description: Get level back on item destroy
     default: op
+  enchantIt.decrease:
+    description: Can decrease enchantment level
+  enchantIt.increase:
+    description: Can increase enchantment level
