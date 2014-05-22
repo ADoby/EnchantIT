@@ -11,3 +11,9 @@ permissions:
   enchantIt.enchantmore:
     description: Higher max enchanting level
     default: op
+  enchantIt.reload:
+    description: Reload Config
+    default: op
+  enchantIt.levelback:
+    description: Get level back on item destroy
+    default: op
