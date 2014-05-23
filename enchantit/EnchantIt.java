@@ -32,6 +32,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 	// Set by this plugin
 	private static EnchantIt plugin;
 	IPermissionHandler permissions;
+	
 	private AutomaticItemRefilling refilling = null;
 	private List<String> enchantStrings = null;
 	private Map<Integer, Enchantment> enchantsByID = null;

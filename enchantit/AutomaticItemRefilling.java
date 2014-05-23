@@ -3,23 +3,22 @@ package enchantit;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
 public class AutomaticItemRefilling implements Listener {
 
@@ -27,7 +26,7 @@ public class AutomaticItemRefilling implements Listener {
 
 	private String REFILL_SECTION_NAME = "autorefillsettings";
 
-	private Map<String, Object> stringToSetting = null;
+	private Map<String, Boolean> stringToSetting = null;
 
 	public AutomaticItemRefilling(EnchantIt plugin) {
 		this.plugin = plugin;
@@ -40,7 +39,7 @@ public class AutomaticItemRefilling implements Listener {
 	ConfigurationSection configSection;
 	
 	public void Reload() {
-		stringToSetting = new HashMap<String, Object>();
+		stringToSetting = new HashMap<String, Boolean>();
 
 		plugin.log("Trying to start Refiller");
 		
@@ -51,37 +50,14 @@ public class AutomaticItemRefilling implements Listener {
 			return;
 		}
 		
-		//configSection = plugin.getConfig().getConfigurationSection(REFILL_SECTION_NAME);
-
-		//if(configSection == null){
-			//plugin.log("Error, ConfigSection null");
-			//return;
-		//}
-		
-		/*Set<String> settings = configSection.getKeys(false);
-		if(settings != null){
-			Iterator<String> ita = settings.iterator();
-			if(ita != null){
-				while (ita.hasNext()) {
-					if(ita.next() != null){
-						AddPlayerToList((String) ita.next());
-					}
-				}
-			}
-		}*/
-		
-		//plugin.getConfig().createSection(REFILL_SECTION_NAME, stringToSetting);
-		
 		plugin.log("Refiller Loaded");
 	}
 
 	private void LoadPlayerToList(String key) {
 		boolean refilling = plugin.getConfig().getBoolean(
 				REFILL_SECTION_NAME + "." + key + ".refill", true);
-
-		stringToSetting.put(key, refilling);
 		
-		plugin.saveConfig();
+		AddNewPlayerToList(key, refilling);
 	}
 	
 
@@ -92,125 +68,146 @@ public class AutomaticItemRefilling implements Listener {
 				REFILL_SECTION_NAME + "." + key + ".refill", refilling);
 		
 		plugin.saveConfig();
-		
-		//configSection.set(player, refilling);
-		
-		/*
-		 * Position = new Vector3(sin(i), position.x, cos(i));
-		 * i++;
-		 * if(i==359)
-		 * i = 0;
-		 */
 	}
-
-	@EventHandler
-	public void onPlayerInteract(PlayerInteractEvent e) {
-		if(true)
-			return;
-		
-		if(e.getAction() == Action.RIGHT_CLICK_BLOCK){
-			if (plugin.permissions.has(e.getPlayer(), "enchantit.refill")) {
-				// We only do it when, we player wants to refill
-				if ((boolean) stringToSetting.get(getPlayerIdentifier(e.getPlayer()))) {
-					ItemStack item = null;
-					PlayerInventory inv = e.getPlayer().getInventory();
-					
-					ItemStack itemInHand = inv.getItemInHand();
-					if(itemInHand != null){
-						if(itemInHand.getAmount() == 0 || itemInHand.getDurability() == 0){
-							item = itemInHand;
-						}
-					}
-					
-					if(item != null){
-						TryRefilling(e.getPlayer(), item);
-					}
-				}
-			}
-		}
-	}
-	
-	@EventHandler
-    public void onItemDrop (PlayerDropItemEvent e) {
-        Player p = e.getPlayer();
-        
-    }
 	
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent e) {
 		String identifier = getPlayerIdentifier(e.getPlayer());
 		
 		LoadPlayerToList(identifier);
-		
-		//boolean refilling = (boolean) configSection.get(identifier, true);
-		
-		//AddNewPlayerToList(identifier, refilling);
 	}
 	
+	
+	//Refill events
+	
 	@EventHandler
-	public void onBlockPlace(BlockPlaceEvent e) {
-		if (plugin.permissions.has(e.getPlayer(), "enchantit.refill")) {
-			// We only do it when, we player wants to refill
-			if ((boolean) stringToSetting.get(getPlayerIdentifier(e.getPlayer()))) {
-				if(e.getItemInHand().getAmount() == 1){
-					TryRefilling(e.getPlayer(), e.getItemInHand());
-				}else{
-					plugin.msg(e.getPlayer(), "&aItem Not empty");
-				}
-			}
+    public void onItemDrop (PlayerDropItemEvent e) {
+        TryRefilling(e.getPlayer(), e.getItemDrop().getItemStack(), true);
+    }
+	
+	@EventHandler
+	public void onBlockPlace(BlockPlaceEvent event) {
+		if(event.getItemInHand().getAmount() == 1 && event.getBlockPlaced().getType() != Material.SOIL){
+			//Only refill if the last item was placed
+			TryRefilling(event.getPlayer(), event.getItemInHand(), true);
 		}
 	}
 	
 	@EventHandler
 	public void onPlayerItemBreak(PlayerItemBreakEvent event) {
-		if (plugin.permissions.has(event.getPlayer(), "enchantit.refill")) {
-			// We only do it when, we player wants to refill
-			if ((boolean) stringToSetting.get(getPlayerIdentifier(event
-					.getPlayer()))) {
-				TryRefilling(event.getPlayer(), event.getBrokenItem());
-			}
-		}
+		TryRefilling(event.getPlayer(), event.getBrokenItem(), false);
 	}
-
-	private void TryRefilling(Player player, ItemStack replacingItem) {
-		if(replacingItem == null){
-			plugin.msg(player, "&aItemis null");
-			return;
+	
+	@SuppressWarnings("deprecation")
+	private boolean TryRefilling(Player player, ItemStack itemStack){
+		
+		if (!stringToSetting.get(getPlayerIdentifier(player))) {
+			//Player doesn't want to refill
+			return false;
+		}
+		if (!plugin.permissions.has(player, "enchantit.refill")) {
+			plugin.msg(player, "&aYou don't have permissions to refill items");
+			return false;
 		}
 		
-		Integer InvSize = player.getInventory().getSize();
-		Integer i = 0;
+		if(itemStack == null){
+			return false;
+		}
+		
+		for (int InventorySlotID = 0; InventorySlotID < player.getInventory().getSize(); InventorySlotID++) {
+			ItemStack item = player.getInventory().getItem(InventorySlotID);
+			if (item != null && InventorySlotID != player.getInventory().getHeldItemSlot()) {
 
-		//Material wantedMat = replacingItem.getType();
-
-		for (i = 0; i < InvSize; i++) {
-			ItemStack item = player.getInventory().getItem(i);
-			if (item != null && i != player.getInventory().getHeldItemSlot()) {
-				if (item.getType() == replacingItem.getType()) {
-					if(item.getData().getData() == replacingItem.getData().getData()){
-						
-						ItemStack newItem = item.clone();
-						
-						player.getInventory().setItem(player.getInventory().getHeldItemSlot(), newItem);
-						
-						
-						//player.getInventory().						
-						//player.getInventory().setItemInHand(item.clone());
-						
-						player.getInventory().setItem(i, null);
-						
-						//player.getInventory().clear(i);
-						
-						//player.getInventory().
-						
-						
-						plugin.msg(player, "&aReplaced");
-						return;
+				if(itemStack.getTypeId() != item.getTypeId()){
+					return false;
+				}
+				
+				if((itemStack.getData().getData() < 30 && itemStack.getData().getData() != 0)){
+					if(itemStack.getData().getData() != item.getData().getData()){
+						return false;
 					}
+				}
+				
+				player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item.clone());
+				
+				player.getInventory().setItem(InventorySlotID, null);
+				
+				player.updateInventory();
+				
+				plugin.msg(player, "&aItem Replaced");
+				return true;
+			}
+		}
+		plugin.msg(player, "&aDid not find another item");
+		return false;
+	}
+	
+	@SuppressWarnings("deprecation")
+	private boolean TryRefilling(Player player, Material type, int data, boolean checkData){		
+		if (!stringToSetting.get(getPlayerIdentifier(player))) {
+			//Player doesn't want to refill
+			return false;
+		}
+		if (!plugin.permissions.has(player, "enchantit.refill")) {
+			plugin.msg(player, "&aYou don't have permissions to refill items");
+			return false;
+		}
+
+		for (int InventorySlotID = 0; InventorySlotID < player.getInventory().getSize(); InventorySlotID++) {
+			ItemStack item = player.getInventory().getItem(InventorySlotID);
+			
+			if (item != null && InventorySlotID != player.getInventory().getHeldItemSlot()) {
+				if (item.getType() == type) {
+					//Check type like dirt, log, wool, axe etc.
+					
+					if(item.getDurability() != 0){
+						player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item.clone());
+						
+						player.getInventory().setItem(InventorySlotID, null);
+						
+						player.updateInventory();
+						
+						plugin.msg(player, "&aItem Replaced");
+						return true;
+					}
+					
+					if(item.getData().getData() == data){
+						//check data like red wool, cracked brick etc.
+						
+						player.getInventory().setItem(player.getInventory().getHeldItemSlot(), item.clone());
+						
+						player.getInventory().setItem(InventorySlotID, null);
+						
+						player.updateInventory();
+						
+						plugin.msg(player, "&aItem Replaced");
+						return true;
+					} 
 				}
 			}
 		}
-		plugin.msg(player, "&aNo item found to replace");
+		plugin.msg(player, "&aDid not find another item");
+		return false;
+	}
+	
+	@SuppressWarnings("unused")
+	private boolean TryRefilling(Player player, Item replacingItem, boolean checkData) {
+		if(replacingItem == null){
+			return false;
+		}
+		
+		return TryRefilling(player, replacingItem.getItemStack(), checkData);
+	}
+	
+	@SuppressWarnings("deprecation")
+	private boolean TryRefilling(Player player, ItemStack replacingItemStack, boolean checkData) {
+		if(replacingItemStack == null){
+			return false;
+		}
+		
+		plugin.log("Data: " + replacingItemStack.getData().getData() + " Durability: " + replacingItemStack.getDurability());
+		
+		return TryRefilling(player, replacingItemStack.getType(), replacingItemStack.getData().getData(), checkData);
 	}
 
 	public String getPlayerIdentifier(Player player) {
@@ -231,7 +228,6 @@ public class AutomaticItemRefilling implements Listener {
 
 	public boolean onCommand(CommandSender sender, Command cmd, String label,
 			String[] args) {
-		// TODO Auto-generated method stub
 		if ((label.equalsIgnoreCase("enchantit"))
 				|| (label.equalsIgnoreCase("eit"))) {
 			if ((args.length == 2) && (sender instanceof Player)) {
