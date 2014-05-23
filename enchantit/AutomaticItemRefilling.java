@@ -87,13 +87,16 @@ public class AutomaticItemRefilling implements Listener {
 	
 	@EventHandler
 	public void onPlayerItemBreak(PlayerItemBreakEvent event) {
-		TryRefilling(event.getPlayer(), event.getBrokenItem());
+		if(event.getBrokenItem() == event.getPlayer().getInventory().getItemInHand()){
+			TryRefilling(event.getPlayer(), event.getBrokenItem());
+		}else{
+			//Should be one of players armor
+			//Dont know how yet.
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
 	private void ReplaceItem(Player player, int slot, ItemStack newItem){
-		
-		
 		player.getInventory().setItem(player.getInventory().getHeldItemSlot(), newItem.clone());
 		
 		player.getInventory().setItem(slot, null);
