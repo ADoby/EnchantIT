@@ -92,6 +92,8 @@ public class AutomaticItemRefilling implements Listener {
 	
 	@SuppressWarnings("deprecation")
 	private void ReplaceItem(Player player, int slot, ItemStack newItem){
+		
+		
 		player.getInventory().setItem(player.getInventory().getHeldItemSlot(), newItem.clone());
 		
 		player.getInventory().setItem(slot, null);
@@ -120,7 +122,7 @@ public class AutomaticItemRefilling implements Listener {
 					//Check type like dirt, log, wool, axe etc.
 					
 					//First is for tools, second for blocks etc.
-					if(item.getDurability() != 0 || item.getData().getData() == data){
+					if(player.getInventory().getItemInHand().getDurability() != 0 || item.getData().getData() == data){
 						ReplaceItem(player, InventorySlotID, item);
 						return true;
 					}
