@@ -26,12 +26,13 @@ import net.milkbowl.vault.permission.Permission;
 public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 
 	// Wont Change
-	private String CONFIG_SPLIT_STRING = " &f: &6";
+	public String CONFIG_SPLIT_STRING = " &f: &6";
 	private String ID_MAXLEVEL_SPLIT_STRING = "-";
 
 	// Set by this plugin
 	private static EnchantIt plugin;
-	private static IPermissionHandler permissions;
+	IPermissionHandler permissions;
+	private AutomaticItemRefilling refilling = null;
 	private List<String> enchantStrings = null;
 	private Map<Integer, Enchantment> enchantsByID = null;
 	private Map<String, Enchantment> enchantsByName = null;
@@ -51,7 +52,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 
 		// Default setup
 		plugin = this;
-
+		
 		getServer().getPluginManager().registerEvents(this, this);
 
 		// First add callback thingy for my command
@@ -63,8 +64,11 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		// Save Config (if e.g. defaults where copied)
 		saveConfig();
 
+		
+		
 		LoadPlugin();
 
+		refilling = new AutomaticItemRefilling(this);
 	}
 
 	private void LoadPlugin() {
@@ -118,6 +122,8 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 			log("Error loading config, disabling !");
 			getPluginLoader().disablePlugin(this);
 		}
+		
+		
 	}
 
 	private void AddEnchantmentFromConfig(String enchant) {
@@ -172,12 +178,14 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		enchantsByName.clear();
 		enchantsByID.clear();
 		enchantMaxLevels.clear();
+		
 	}
 
 	private void Reload() {
 		log("Reloading...");
 		onDisable();
 		LoadPlugin();
+		refilling.Reload();
 		log("Reloaded!");
 	}
 
@@ -195,10 +203,16 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 
 	public boolean onCommand(CommandSender sender, Command cmd, String label,
 			String[] args) {
+		
+		if(refilling.onCommand(sender, cmd, label, args)){
+			return true;
+		}
 		if ((label.equalsIgnoreCase("enchantit"))
 				|| (label.equalsIgnoreCase("eit"))) {
 			if ((args.length >= 2) && ((sender instanceof Player))
 					&& (((Player) sender).getItemInHand() != null)) {
+				
+				
 				Player p = (Player) sender;
 
 				Enchantment ench = null;
@@ -429,11 +443,11 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		}
 	}
 
-	private void msg(CommandSender sender, String msg) {
+	public void msg(CommandSender sender, String msg) {
 		sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
 	}
 
-	private void msg(Player sender, String msg) {
+	public void msg(Player sender, String msg) {
 		sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
 	}
 
@@ -486,7 +500,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		return false;
 	}
 
-	private void log(String msg) {
+	public void log(String msg) {
 		getServer().getLogger().info("[EnchantIt] " + msg);
 	}
 }

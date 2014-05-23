@@ -21,3 +21,5 @@ permissions:
     description: Can decrease enchantment level
   enchantIt.increase:
     description: Can increase enchantment level
+  enchantIt.refill:
+    description: Automatic refilling item in hand if possible
