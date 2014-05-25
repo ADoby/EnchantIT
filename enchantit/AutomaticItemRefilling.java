@@ -73,8 +73,12 @@ public class AutomaticItemRefilling implements Listener {
 	//Refill events
 	
 	@EventHandler
-    public void onItemDrop (PlayerDropItemEvent e) {
-        TryRefilling(e.getPlayer(), e.getItemDrop().getItemStack());
+    public void onItemDrop (PlayerDropItemEvent event) {
+		/*
+		if(event.getItemDrop().getItemStack().equals(event.getPlayer().getItemInHand()) && event.getPlayer().getItemInHand().getAmount() == 1){
+			TryRefilling(event.getPlayer(), event.getItemDrop().getItemStack());
+		}
+        */
     }
 	
 	@EventHandler
@@ -87,27 +91,49 @@ public class AutomaticItemRefilling implements Listener {
 	
 	@EventHandler
 	public void onPlayerItemBreak(PlayerItemBreakEvent event) {
-		if(event.getBrokenItem() == event.getPlayer().getInventory().getItemInHand()){
+		if(event.getBrokenItem().equals(event.getPlayer().getInventory().getItemInHand())){
 			TryRefilling(event.getPlayer(), event.getBrokenItem());
 		}else{
 			//Should be one of players armor
 			//Dont know how yet.
+			return;
+			/*
+			int slotID = getItemSlotID(event.getPlayer(), event.getBrokenItem());
+			
+			if(slotID != -1){
+				TryRefilling(event.getPlayer(), event.getBrokenItem(), slotID);
+				return;
+			}			
+			plugin.msg(event.getPlayer(), "&aCould not find a nother amor");
+			*/
 		}
 	}
 	
+	@SuppressWarnings("unused")
+	private int getItemSlotID(Player player, ItemStack item){
+		for (int InventorySlotID = 0; InventorySlotID < player.getInventory().getSize(); InventorySlotID++) {
+			if(player.getInventory().getItem(InventorySlotID).equals(item)){
+				return InventorySlotID;
+			}
+		}
+		return -1;
+	}
+	
 	@SuppressWarnings("deprecation")
-	private void ReplaceItem(Player player, int slot, ItemStack newItem){
-		player.getInventory().setItem(player.getInventory().getHeldItemSlot(), newItem.clone());
+	private void ReplaceItem(Player player, int brokenItemSlot, int newItemSlot, ItemStack newItem){
+		player.getInventory().setItem(brokenItemSlot, newItem.clone());
 		
-		player.getInventory().setItem(slot, null);
+		player.getInventory().setItem(newItemSlot, null);
 		
 		player.updateInventory();
 		
 		plugin.msg(player, "&aItem Replaced");
 	}
 	
+	
+	
 	@SuppressWarnings("deprecation")
-	private boolean TryRefilling(Player player, Material type, int data){		
+	private boolean TryRefilling(Player player, ItemStack brokenItem, int brokenItemSlot){
 		if (!stringToSetting.get(getPlayerIdentifier(player))) {
 			//Player doesn't want to refill
 			return false;
@@ -120,13 +146,13 @@ public class AutomaticItemRefilling implements Listener {
 			ItemStack item = player.getInventory().getItem(InventorySlotID);
 			
 			//First is to except empty slots, second so we don't swap with the same item we are holding
-			if (item != null && InventorySlotID != player.getInventory().getHeldItemSlot()) {
-				if (item.getType() == type) {
+			if (item != null && InventorySlotID != brokenItemSlot) {
+				if (item.getType() == brokenItem.getType()) {
 					//Check type like dirt, log, wool, axe etc.
 					
 					//First is for tools, second for blocks etc.
-					if(player.getInventory().getItemInHand().getDurability() != 0 || item.getData().getData() == data){
-						ReplaceItem(player, InventorySlotID, item);
+					if(brokenItem.getDurability() != 0 || item.getData().getData() == brokenItem.getData().getData()){
+						ReplaceItem(player, brokenItemSlot, InventorySlotID, item);
 						return true;
 					}
 				}
@@ -137,13 +163,12 @@ public class AutomaticItemRefilling implements Listener {
 		return false;
 	}
 	
-	@SuppressWarnings("deprecation")
 	private boolean TryRefilling(Player player, ItemStack replacingItemStack) {
 		if(replacingItemStack == null){
 			return false;
 		}
 		
-		return TryRefilling(player, replacingItemStack.getType(), replacingItemStack.getData().getData());
+		return TryRefilling(player, replacingItemStack, player.getInventory().getHeldItemSlot());
 	}
 
 	public String getPlayerIdentifier(Player player) {
