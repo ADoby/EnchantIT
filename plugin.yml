@@ -1,6 +1,6 @@
 name: EnchantIt
 main: enchantit.EnchantIt
-version: 1.0
+version: 1.51
 dev-url: http://http://dev.bukkit.org/server-mods/enchantit/
 description: Enchant with levels
 commands:
