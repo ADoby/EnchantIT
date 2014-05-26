@@ -8,18 +8,20 @@ commands:
     description: EnchantIt Command
     aliases: eit
 permissions:
-  enchantIt.enchantmore:
+  enchantit:
+    description: Permission to use enchantit
+  enchantit.enchantmore:
     description: Higher max enchanting level
     default: op
-  enchantIt.reload:
+  enchantit.reload:
     description: Reload Config
     default: op
-  enchantIt.levelback:
+  enchantit.levelback:
     description: Get level back on item destroy
     default: op
-  enchantIt.decrease:
+  enchantit.decrease:
     description: Can decrease enchantment level
-  enchantIt.increase:
+  enchantit.increase:
     description: Can increase enchantment level
-  enchantIt.refill:
+  enchantit.refill:
     description: Automatic refilling item in hand if possible

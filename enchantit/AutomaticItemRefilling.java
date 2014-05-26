@@ -201,6 +201,12 @@ public class AutomaticItemRefilling implements Listener {
 				|| (label.equalsIgnoreCase("eit"))) {
 			if ((args.length == 2) && (sender instanceof Player)) {
 				Player player = (Player) sender;
+				
+				if(!plugin.permissions.has(player, "enchantit")){
+					plugin.msg(player, "&aYou don't have the permission to use enchantit.");
+					return true;
+				}
+				
 				if (!args[0].equalsIgnoreCase("refill")) {
 					return false;
 				}

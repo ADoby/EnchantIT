@@ -6,6 +6,7 @@ defaults:
   mult_per_skill_level: 0.0
   max_level_cost: 40
   level_back_mult: 1.0
+  enable_refiller: true
 enchants:
   protection: 0-10
   protect: 0-10

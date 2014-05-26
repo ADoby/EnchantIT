@@ -48,6 +48,8 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 	private int MAX_LEVEL_COST = 40;
 
 	private double LEVEL_BACK_MULT = 1.0D;
+	
+	private boolean REFILLING_ENABLED = true;
 
 	public void onEnable() {
 
@@ -68,8 +70,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		
 		
 		LoadPlugin();
-
-		refilling = new AutomaticItemRefilling(this);
+		
 	}
 
 	private void LoadPlugin() {
@@ -104,6 +105,8 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		this.LEVEL_BACK_MULT = getConfig()
 				.getDouble("defaults.level_back_mult");
 
+		this.REFILLING_ENABLED = getConfig().getBoolean("defaults.enable_refiller");
+		
 		ConfigurationSection CS = getConfig().getConfigurationSection(
 				"enchants");
 
@@ -124,7 +127,9 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 			getPluginLoader().disablePlugin(this);
 		}
 		
-		
+		if(REFILLING_ENABLED){
+			refilling = new AutomaticItemRefilling(this);
+		}
 	}
 
 	private void AddEnchantmentFromConfig(String enchant) {
@@ -179,14 +184,12 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		enchantsByName.clear();
 		enchantsByID.clear();
 		enchantMaxLevels.clear();
-		
 	}
 
 	private void Reload() {
 		log("Reloading...");
 		onDisable();
 		LoadPlugin();
-		refilling.Reload();
 		log("Reloaded!");
 	}
 
@@ -210,6 +213,15 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		}
 		if ((label.equalsIgnoreCase("enchantit"))
 				|| (label.equalsIgnoreCase("eit"))) {
+			if((sender instanceof Player)){
+				Player p = (Player) sender;
+				if(!permissions.has(p, "enchantit")){
+					msg(p, "&aYou don't have the permission to use enchantit.");
+					return true;
+				}
+			}
+			
+			
 			if ((args.length >= 2) && ((sender instanceof Player))
 					&& (((Player) sender).getItemInHand() != null)) {
 				
@@ -252,7 +264,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 					
 					//Set Enchantment level to either maxlevel or enchantmentMaxLevel
 					int maxlevel = this.MAX_ENCHANT_LEVEL_DEFAULT;
-					if (permissions.has(p, "enchantIt.enchantmore")) {
+					if (permissions.has(p, "enchantit.enchantmore")) {
 						maxlevel = this.MAX_ENCHANT_LEVEL_PERM;
 					}
 					
@@ -296,7 +308,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 						|| args[0].equalsIgnoreCase("r")) {
 					if ((sender instanceof Player)) {
 						Player p = (Player) sender;
-						if (permissions.has(p, "enchantIt.reload")) {
+						if (permissions.has(p, "enchantit.reload")) {
 							Reload();
 						}
 					} else {
@@ -319,7 +331,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		int currentLevel = getEnchantmentLevel(p.getItemInHand(), ench);
 
 		int maxlevel = this.MAX_ENCHANT_LEVEL_DEFAULT;
-		if (permissions.has(p, "enchantIt.enchantmore")) {
+		if (permissions.has(p, "enchantit.enchantmore")) {
 			maxlevel = this.MAX_ENCHANT_LEVEL_PERM;
 		}
 
@@ -359,7 +371,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		}
 
 		if (currentLevel > newLevel) {
-			if(!permissions.has(p, "enchantIt.decrease")){
+			if(!permissions.has(p, "enchantit.decrease")){
 				msg(p, "&aYou don't have the permission to decrease any enchantment level.");
 				return;
 			}
@@ -379,7 +391,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 				msg(p, "&aSome error, don't know");
 			}
 		} else if (currentLevel < newLevel) {
-			if(!permissions.has(p, "enchantIt.increase")){
+			if(!permissions.has(p, "enchantit.increase")){
 				msg(p, "&aYou don't have the permission to increase any enchantment level.");
 				return;
 			}
