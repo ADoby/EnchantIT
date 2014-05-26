@@ -127,6 +127,8 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 			getPluginLoader().disablePlugin(this);
 		}
 		
+		refilling = null;
+		
 		if(REFILLING_ENABLED){
 			refilling = new AutomaticItemRefilling(this);
 		}
@@ -193,7 +195,15 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		log("Reloaded!");
 	}
 
-	private void GetLevelBack(Player player, ItemStack item) {
+	public void GetLevelBack(Player player, ItemStack item) {
+		if (LEVEL_BACK_MULT <= 0) {
+			return;
+		}
+		
+		if(!permissions.has(player, "enchantit.levelback")){
+			return;
+		}
+		
 		int level = 0;
 		for (Map.Entry<Integer, Enchantment> entry : enchantsByID.entrySet()) {
 			level += getEnchantmentLevel(item, entry.getValue())
@@ -203,6 +213,33 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		msg(player, "&aYou should get " + level + " level back.");
 
 		player.setLevel(player.getLevel() + level);
+	}
+	
+	public boolean ItemHasEnchantments(ItemStack item){
+		for (Map.Entry<Integer, Enchantment> entry : enchantsByID.entrySet()) {
+			if(getEnchantmentLevel(item, entry.getValue()) > 0){
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public void EnchantItemWithSameEnchantments(Player player, ItemStack oldItem, ItemStack newItem){
+		for (Map.Entry<Integer, Enchantment> entry : enchantsByID.entrySet()) {
+			int level = getEnchantmentLevel(oldItem, entry.getValue());
+			
+			if(level > 0){
+				int levelcost = calcLevel(0, level);
+				
+				if(player.getLevel() >= levelcost){
+					player.setLevel(player.getLevel() - levelcost);
+					
+					//Add this enchantment to new Item
+					setEnchantment(newItem, entry.getValue(), level);
+				}
+			}
+		}
 	}
 
 	public boolean onCommand(CommandSender sender, Command cmd, String label,
@@ -448,12 +485,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 
 	@EventHandler
 	public void onPlayerItemBreak(PlayerItemBreakEvent event) {
-		if (permissions.has(event.getPlayer(), "enchantit.levelback")) {
-			// We only do it when, we want to give levels back
-			if (LEVEL_BACK_MULT > 0) {
-				GetLevelBack(event.getPlayer(), event.getBrokenItem());
-			}
-		}
+		
 	}
 
 	public void msg(CommandSender sender, String msg) {

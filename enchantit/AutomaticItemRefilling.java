@@ -23,6 +23,8 @@ public class AutomaticItemRefilling implements Listener {
 
 	private Map<String, Boolean> stringToSetting = null;
 
+	private Map<String, Boolean> stringToEnchantedRefill = null;
+	
 	public AutomaticItemRefilling(EnchantIt plugin) {
 		this.plugin = plugin;
 
@@ -35,6 +37,7 @@ public class AutomaticItemRefilling implements Listener {
 		plugin.log("Trying to start Refiller");
 		
 		stringToSetting = new HashMap<String, Boolean>();
+		stringToEnchantedRefill = new HashMap<String, Boolean>();
 		
 		Player[] players = plugin.getServer().getOnlinePlayers();
 		
@@ -49,15 +52,26 @@ public class AutomaticItemRefilling implements Listener {
 		boolean refilling = plugin.getConfig().getBoolean(
 				REFILL_SECTION_NAME + "." + key + ".refill", true);
 		
-		AddNewPlayerToList(key, refilling);
+		boolean enchantedRefill = plugin.getConfig().getBoolean(
+				REFILL_SECTION_NAME + "." + key + ".enchantedRefill", true);
+		
+		AddNewPlayerToList(key, refilling, enchantedRefill);
 	}
 	
 
-	public void AddNewPlayerToList(String key, boolean refilling) {
+	public boolean PlayerWantsEnchantedRefill(Player player){
+		return stringToEnchantedRefill.get(getPlayerIdentifier(player));
+	}
+	
+	public void AddNewPlayerToList(String key, boolean refilling, boolean enchantedRefill) {
 		stringToSetting.put(key, refilling);
+		stringToEnchantedRefill.put(key, enchantedRefill);
 		
 		plugin.getConfig().set(
 				REFILL_SECTION_NAME + "." + key + ".refill", refilling);
+		
+		plugin.getConfig().set(
+				REFILL_SECTION_NAME + "." + key + ".enchantedRefill", enchantedRefill);
 		
 		plugin.saveConfig();
 	}
@@ -91,21 +105,40 @@ public class AutomaticItemRefilling implements Listener {
 	
 	@EventHandler
 	public void onPlayerItemBreak(PlayerItemBreakEvent event) {
-		if(event.getBrokenItem().equals(event.getPlayer().getInventory().getItemInHand())){
-			TryRefilling(event.getPlayer(), event.getBrokenItem());
-		}else{
-			//Should be one of players armor
-			//Dont know how yet.
+		plugin.GetLevelBack(event.getPlayer(), event.getBrokenItem());
+		
+		if(!event.getBrokenItem().equals(event.getPlayer().getInventory().getItemInHand())){
+			//Armor
 			return;
-			/*
-			int slotID = getItemSlotID(event.getPlayer(), event.getBrokenItem());
+		}
+		
+		if(plugin.ItemHasEnchantments(event.getBrokenItem())){
 			
-			if(slotID != -1){
-				TryRefilling(event.getPlayer(), event.getBrokenItem(), slotID);
-				return;
-			}			
-			plugin.msg(event.getPlayer(), "&aCould not find a nother amor");
-			*/
+			
+			
+			final ItemStack oldItem = event.getBrokenItem().clone();
+			final Player player = event.getPlayer();
+			
+			plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                public void run() {
+                	if(TryRefilling(player, oldItem)){
+                		plugin.EnchantItemWithSameEnchantments(player, oldItem, player.getItemInHand());
+                    	plugin.msg(player, "&aYour enchanted item broke, i found another non enchanted item and enchanted it");
+                	}
+                }
+            }, 5L);
+
+		}else{
+			final ItemStack oldItem = event.getBrokenItem().clone();
+			final Player player = event.getPlayer();
+			
+			plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                public void run() {
+                	if(TryRefilling(player, oldItem)){
+                		plugin.msg(player, "&aYour item broke, i replaced it");
+                	}
+                }
+            }, 5L);
 		}
 	}
 	
@@ -210,6 +243,9 @@ public class AutomaticItemRefilling implements Listener {
 				if (!args[0].equalsIgnoreCase("refill")) {
 					return false;
 				}
+				if (!args[0].equalsIgnoreCase("enchantedRefill")) {
+					return false;
+				}
 				
 				if (!plugin.permissions.has(player, "enchantit.refill")) {
 					plugin.msg(player, "&aYou don't have permissions to refill items");
@@ -221,14 +257,11 @@ public class AutomaticItemRefilling implements Listener {
 					return false;
 				}
 
-				// Set Settings for player
-				boolean refilling = false;
-				if (args[1].equalsIgnoreCase("true"))
-					refilling = true;
-
-				AddNewPlayerToList(getPlayerIdentifier(player), refilling);
-
-				plugin.msg(player, "&aRefill settings updated");
+				if (args[0].equalsIgnoreCase("refill")) {
+					SetRefillSetting(player, args[1]);
+				}else if (args[0].equalsIgnoreCase("enchantedRefill")) {
+					SetEnchantedRefillSetting(player, args[1]);
+				}
 				return true;
 			}
 		}
@@ -236,4 +269,25 @@ public class AutomaticItemRefilling implements Listener {
 		return false;
 	}
 
+	private void SetRefillSetting(Player player, String arg){
+		// Set Settings for player
+		boolean refilling = false;
+		if (arg.equalsIgnoreCase("true"))
+			refilling = true;
+
+		AddNewPlayerToList(getPlayerIdentifier(player), refilling, stringToEnchantedRefill.get(getPlayerIdentifier(player)));
+
+		plugin.msg(player, "&aRefill settings updated");
+	}
+	
+	private void SetEnchantedRefillSetting(Player player, String arg){
+		boolean refilling = false;
+		if (arg.equalsIgnoreCase("true"))
+			refilling = true;
+
+		AddNewPlayerToList(getPlayerIdentifier(player), stringToSetting.get(getPlayerIdentifier(player)), refilling);
+
+		plugin.msg(player, "&aEnchanted refill settings updated");
+	}
+	
 }
