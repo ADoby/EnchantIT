@@ -113,9 +113,6 @@ public class AutomaticItemRefilling implements Listener {
 		}
 		
 		if(plugin.ItemHasEnchantments(event.getBrokenItem())){
-			
-			
-			
 			final ItemStack oldItem = event.getBrokenItem().clone();
 			final Player player = event.getPlayer();
 			
@@ -240,13 +237,6 @@ public class AutomaticItemRefilling implements Listener {
 					return true;
 				}
 				
-				if (!args[0].equalsIgnoreCase("refill")) {
-					return false;
-				}
-				if (!args[0].equalsIgnoreCase("enchantedRefill")) {
-					return false;
-				}
-				
 				if (!plugin.permissions.has(player, "enchantit.refill")) {
 					plugin.msg(player, "&aYou don't have permissions to refill items");
 					return false;
@@ -257,10 +247,13 @@ public class AutomaticItemRefilling implements Listener {
 					return false;
 				}
 
-				if (args[0].equalsIgnoreCase("refill")) {
+				if (args[0].equalsIgnoreCase("refill") || args[0].equalsIgnoreCase("r")) {
 					SetRefillSetting(player, args[1]);
-				}else if (args[0].equalsIgnoreCase("enchantedRefill")) {
+				}else if (args[0].equalsIgnoreCase("enchantedRefill") || args[0].equalsIgnoreCase("er")) {
 					SetEnchantedRefillSetting(player, args[1]);
+				}
+				else{
+					return false;
 				}
 				return true;
 			}

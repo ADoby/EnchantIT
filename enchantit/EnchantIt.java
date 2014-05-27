@@ -242,14 +242,14 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 		}
 	}
 
-	public boolean onCommand(CommandSender sender, Command cmd, String label,
-			String[] args) {
+	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		
 		if(refilling.onCommand(sender, cmd, label, args)){
 			return true;
 		}
 		if ((label.equalsIgnoreCase("enchantit"))
 				|| (label.equalsIgnoreCase("eit"))) {
+			
 			if((sender instanceof Player)){
 				Player p = (Player) sender;
 				if(!permissions.has(p, "enchantit")){
@@ -341,8 +341,7 @@ public class EnchantIt extends JavaPlugin implements CommandExecutor, Listener {
 														(String) this.enchantStrings
 																.get(i)));
 					}
-				} else if (args[0].equalsIgnoreCase("reload")
-						|| args[0].equalsIgnoreCase("r")) {
+				} else if (args[0].equalsIgnoreCase("reload")) {
 					if ((sender instanceof Player)) {
 						Player p = (Player) sender;
 						if (permissions.has(p, "enchantit.reload")) {
