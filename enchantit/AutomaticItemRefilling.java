@@ -99,7 +99,7 @@ public class AutomaticItemRefilling implements Listener {
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if(event.getItemInHand().getAmount() == 1 && event.getBlockPlaced().getType() != Material.SOIL){
 			//Only refill if the last item was placed
-			TryRefilling(event.getPlayer(), event.getItemInHand());
+			TryRefillingItem(event.getPlayer(), event.getItemInHand());
 		}
 	}
 	
@@ -114,14 +114,12 @@ public class AutomaticItemRefilling implements Listener {
 		
 		if(plugin.ItemHasEnchantments(event.getBrokenItem())){
 			
-			
-			
 			final ItemStack oldItem = event.getBrokenItem().clone();
 			final Player player = event.getPlayer();
 			
 			plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                 public void run() {
-                	if(TryRefilling(player, oldItem)){
+                	if(TryRefillingTool(player, oldItem)){
                 		plugin.EnchantItemWithSameEnchantments(player, oldItem, player.getItemInHand());
                     	plugin.msg(player, "&aYour enchanted item broke, i found another non enchanted item and enchanted it");
                 	}
@@ -134,7 +132,7 @@ public class AutomaticItemRefilling implements Listener {
 			
 			plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                 public void run() {
-                	if(TryRefilling(player, oldItem)){
+                	if(TryRefillingTool(player, oldItem)){
                 		plugin.msg(player, "&aYour item broke, i replaced it");
                 	}
                 }
@@ -164,9 +162,60 @@ public class AutomaticItemRefilling implements Listener {
 	}
 	
 	
+	private boolean TryRefillingItem(Player player, ItemStack brokenItem, int brokenItemSlot){
+		if (!stringToSetting.get(getPlayerIdentifier(player))) {
+			//Player doesn't want to refill
+			return false;
+		}
+		if (!plugin.permissions.has(player, "enchantit.refill")) {
+			return false;
+		}
+
+		for (int InventorySlotID = 0; InventorySlotID < player.getInventory().getSize(); InventorySlotID++) {
+			ItemStack item = player.getInventory().getItem(InventorySlotID);
+			
+			//First is to except empty slots, second so we don't swap with the same item we are holding
+			if (item != null && InventorySlotID != brokenItemSlot) {
+				if (item.isSimilar(brokenItem)) {
+					ReplaceItem(player, brokenItemSlot, InventorySlotID, item);
+					return true;
+				}
+			}
+		}
+		
+		//If we get here we did not find any item
+		return false;
+	}
+
+	private boolean TryRefillingTool(Player player, ItemStack brokenItem, int brokenItemSlot){
+		if (!stringToSetting.get(getPlayerIdentifier(player))) {
+			//Player doesn't want to refill
+			return false;
+		}
+		if (!plugin.permissions.has(player, "enchantit.refill")) {
+			return false;
+		}
+
+		for (int InventorySlotID = 0; InventorySlotID < player.getInventory().getSize(); InventorySlotID++) {
+			ItemStack item = player.getInventory().getItem(InventorySlotID);
+			
+			//First is to except empty slots, second so we don't swap with the same item we are holding
+			if (item != null && InventorySlotID != brokenItemSlot) {
+				if (item.getType() == brokenItem.getType()) {
+					//Check type like dirt, log, wool, axe etc.
+					
+					ReplaceItem(player, brokenItemSlot, InventorySlotID, item);
+					return true;
+				}
+			}
+		}
+		
+		//If we get here we did not find any item
+		return false;
+	}
 	
-	@SuppressWarnings("deprecation")
-	private boolean TryRefilling(Player player, ItemStack brokenItem, int brokenItemSlot){
+	@SuppressWarnings({ "deprecation", "unused" })
+	private boolean TryRefilling2(Player player, ItemStack brokenItem, int brokenItemSlot){
 		if (!stringToSetting.get(getPlayerIdentifier(player))) {
 			//Player doesn't want to refill
 			return false;
@@ -196,12 +245,20 @@ public class AutomaticItemRefilling implements Listener {
 		return false;
 	}
 	
-	private boolean TryRefilling(Player player, ItemStack replacingItemStack) {
+	private boolean TryRefillingTool(Player player, ItemStack replacingItemStack) {
 		if(replacingItemStack == null){
 			return false;
 		}
 		
-		return TryRefilling(player, replacingItemStack, player.getInventory().getHeldItemSlot());
+		return TryRefillingTool(player, replacingItemStack, player.getInventory().getHeldItemSlot());
+	}
+	
+	private boolean TryRefillingItem(Player player, ItemStack replacingItemStack) {
+		if(replacingItemStack == null){
+			return false;
+		}
+		
+		return TryRefillingItem(player, replacingItemStack, player.getInventory().getHeldItemSlot());
 	}
 
 	public String getPlayerIdentifier(Player player) {
